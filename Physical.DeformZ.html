@@ -20102,7 +20102,7 @@ try{const s=Lt.subaru;if(s){delete s.skinExp;delete s.dmg;s.jm={2:1.3,8:1.4,9:1.
  const v=Lt.volmer;if(v){v.str=.92;v.jm={11:1.5,12:1.5,2:1.3}}
  const z=Lt.vaz;if(z){z.jm={2:1.3,11:1.25,12:1.25}}
  const u=Lt.urza;if(u)u.kf=.9}catch(e){}
-try{const SC={"subaru": {"0": [1.35, 0.035, 0.266], "1": [1.34, 0.06, 0.18], "2": [1.49, -0.94, 0.308], "3": [1.48, -0.94, 0.308]}, "vaz": {"0": [1.27, 0.034, 0.12], "2": [1.31, -0.542, 0.266], "3": [1.31, -0.542, 0.266], "1": [1.27, 0.114, 0.12]}, "rr": {"0": [1.52, -0.135, 0.223], "1": [1.52, -0.055, 0.223], "3": [1.51, -1.08, 0.32], "2": [1.51, -1.08, 0.32]}, "qrtas": {"0": [1.33, 0.113, 0.349], "1": [1.36, 0.13, 0.388], "2": [1.38, -0.77, 0.349], "3": [1.38, -0.77, 0.388]}, "volmer": {"0": [1.2, -0.194, 0.18], "1": [1.17, -0.095, 0.223], "2": [1.25, -0.804, 0.42], "3": [1.25, -0.838, 0.266]}, "sportgazier": {"0": [1.38, -0.047, 0.349], "1": [1.385, -0.005, 0.266], "2": [1.425, -0.948, 0.388], "3": [1.425, -0.941, 0.42]}, "butterfly": {"0": [1.29, 0.08900000000000001, 0.42, 0.34], "1": [1.29, 0.15000000000000002, 0.42, 0.34], "2": [1.12, -0.53, 0.42, 0.34], "3": [1.12, -0.53, 0.42, 0.34]}};for(const k in SC)if(Lt[k]){const o={};for(const n in SC[k])o[n]=SC[k][n];Lt[k].seats=o}}catch(e){}
+try{const SC={"subaru": {"0": [1.41, 0.035, 0.266], "1": [1.4, 0.06, 0.18], "2": [1.55, -0.94, 0.308], "3": [1.54, -0.94, 0.308]}, "vaz": {"0": [1.33, 0.034, 0.12], "2": [1.37, -0.542, 0.266], "3": [1.37, -0.542, 0.266], "1": [1.33, 0.114, 0.12]}, "rr": {"0": [1.58, -0.135, 0.223], "1": [1.58, -0.055, 0.223], "3": [1.57, -1.08, 0.32], "2": [1.57, -1.08, 0.32]}, "qrtas": {"0": [1.39, 0.113, 0.349], "1": [1.42, 0.13, 0.388], "2": [1.44, -0.77, 0.349], "3": [1.44, -0.77, 0.388]}, "volmer": {"0": [1.26, -0.194, 0.18], "1": [1.23, -0.095, 0.223], "2": [1.31, -0.804, 0.42], "3": [1.31, -0.838, 0.266]}, "sportgazier": {"0": [1.44, -0.047, 0.349], "1": [1.445, -0.005, 0.266], "2": [1.485, -0.948, 0.388], "3": [1.485, -0.941, 0.42]}, "butterfly": {"0": [1.35, 0.08900000000000001, 0.42, 0.34], "1": [1.35, 0.15000000000000002, 0.42, 0.34], "2": [1.18, -0.53, 0.42, 0.34], "3": [1.18, -0.53, 0.42, 0.34]}};for(const k in SC)if(Lt[k]){const o={};for(const n in SC[k])o[n]=SC[k][n];Lt[k].seats=o}}catch(e){}
 /* ======== Qrtas Fodo (седан, бесплатная) ======== */
 function qrtasCfg(){
  const e=hd(),T=(a,...u)=>u.map(r=>[a,...r]),M=(s,u)=>u.map(([r,n,o,i])=>[r,s*n,o,i]);
@@ -21125,7 +21125,7 @@ function seatGeo(){if(SEAT.geo&&SEAT.geoId===Ie)return SEAT.geo;if(typeof PDZL==
 function seatDir(l){const R=seatRot();return new C0.Vector3(R[0]*l[0]+R[1]*l[1]+R[2]*l[2],R[3]*l[0]+R[4]*l[1]+R[5]*l[2],R[6]*l[0]+R[7]*l[1]+R[8]*l[2])}
 /* поза сидя в координатах машины → мировые суставы */
 function seatJoints(st,drv,off){const D=PED.dim,W=seatFrame(),ox=off?off[0]:0,oz=off?off[1]:0,G=seatGeo(),g=G&&G[st.n];let hy=st.y-.66,rec=st.rec!=null?st.rec:drv?.08:.2;
- if(g){const top=hy+D.spine*Math.cos(rec)+D.neck+D.head+D.top+.03,over=top-g.roof;if(over>0){const dd=Math.min(over,drv?.05:.12);hy-=dd;const rest=over-dd;if(rest>0&&!drv)rec=Math.min(rec+.25,Math.acos(Math.max(.3,Math.cos(rec)-rest/D.spine)))}}
+ if(g){const top=hy+D.spine*Math.cos(rec)+D.neck+D.head+D.top+.03,over=top-g.roof;if(over>0){const dd=Math.min(over,st.rec!=null?.03:drv?.05:.12);hy-=dd;const rest=over-dd;if(rest>0&&(!drv||st.rec!=null))rec=Math.min(rec+(st.rec!=null?.32:.25),Math.acos(Math.max(.3,Math.cos(rec)-rest/D.spine)))}}
  const H=[st.x,hy,st.z+(drv?.02:-.06)],J={},fl=g?g.floor:-9;
  const add=(a,v)=>[a[0]+v[0],a[1]+v[1],a[2]+v[2]];
  const ch=add(H,[ox*.8,D.spine*Math.cos(rec),-D.spine*Math.sin(rec)+oz*.8]),nk=add(ch,[ox*.25,D.neck,.03+D.neck*Math.sin(rec)*.9+oz*.25]),hd=add(nk,[0,D.head,0]),tp=add(hd,[0,D.top,0]);
@@ -21224,8 +21224,8 @@ function seatTick(dt){try{if(!(dt>0)||ze!=="game"&&ze!=="menu"||!b||!b.R)return;
    if(!occ&&!SEAT.rag[i]){I.root.visible=!1;continue}I.root.visible=!0;
    if(SEAT.rag[i]){const Rg=SEAT.rag[i];if(!Rg.out&&Rg.t>2.5&&b.speed<1.2&&st){Rg.calm+=dt;if(Rg.calm>2)Rg.bl=(Rg.bl||0)+dt/.9;if(Rg.bl>=1){SEAT.rag[i]=null;SEAT.o[i]=[0,0];continue}}else{Rg.calm=0;Rg.bl=0}Rg.vc=CV;seatRagStep(Rg,Math.min(dt,.05),aL);const RJ=seatRagJ(Rg);if(Rg.bl>0){/* плавно садится обратно, без телепорта */const S2=seatJoints(st,i===0,[0,0]),u=Rg.bl*Rg.bl*(3-2*Rg.bl);for(const k of PEDJ)RJ[k].lerp(S2[k],u)}pedPose({...RJ,headPitch:0,headYaw:0},I);I.B.head&&I.B.head.scale.setScalar(1);continue}
    /* инерция: пружина, ремень держит */
-   const o=SEAT.o[i]||(SEAT.o[i]=[0,0]),v=SEAT.ov[i]||(SEAT.ov[i]=[0,0]),K=SEAT.belt?70:40,C=SEAT.belt?11:6,lim=ab&&i<2?.12:SEAT.belt?.2:.32,tg=[Math.max(-lim,Math.min(lim,-ax*.006)),Math.max(-lim,Math.min(lim,-az*.006))];
-   for(let k=0;k<2;k++){v[k]+=(K*(tg[k]-o[k])-C*v[k])*dt;o[k]=Math.max(-lim,Math.min(lim,o[k]+v[k]*dt))}
+   const o=SEAT.o[i]||(SEAT.o[i]=[0,0]),v=SEAT.ov[i]||(SEAT.ov[i]=[0,0]),K=SEAT.belt?70:40,C=SEAT.belt?11:6,lim=ab&&i<2?.12:SEAT.belt?.2:.32,tg=[Math.max(-lim,Math.min(lim,-ax*.006)),Math.max(-.025,Math.min(lim,-az*.006))];
+   for(let k=0;k<2;k++){v[k]+=(K*(tg[k]-o[k])-C*v[k])*dt;o[k]=Math.max(k?-.025:-lim,Math.min(lim,o[k]+v[k]*dt))}
    if(!SEAT.belt&&hit){const Rg=SEAT.rag[i]=seatRagNew(seatJoints(st,i===0,o),st);Rg.dvq=[aL[0]*dt,aL[1]*dt,aL[2]*dt];continue}
    if(SEAT.belt&&ev){const fr=i<2&&ab,thr=fr?34:28,p=Math.max(0,Math.min(1,(ev-thr)/22));if(Math.random()<p){const w=SEAT.v0||[b.vx,b.vy,b.vz],wl=[0,0,0];Tl.dL([(w[0]-CV[0])*.6,(w[1]-CV[1])*.6,(w[2]-CV[2])*.6],wl);SEAT.rag[i]=seatRagNew(seatJoints(st,i===0,o),st,wl);continue}}
    const J=seatJoints(st,i===0,o);pedPose(J,I);I.B.head&&I.B.head.scale.setScalar(i===0&&Y.mode===2?.001:1)}}catch(x){}}
