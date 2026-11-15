@@ -18348,6 +18348,13 @@ function pdzDrawerInit() {
 
 /* ======== PDZ: snow roads map + terrain detail ======== */
 var FRS = 0;
+var FRSL = [8, -6, 78];
+var FRSF = { pts: null, t: 0 };
+function ptIce() { return PTX.ice || (PTX.ice = pdzCv(512, 512, (g, w, h) => { const R = Et(88); g.fillStyle = "#b8cdda"; g.fillRect(0, 0, w, h); pdzNoise(g, w, h, R, 3000, ["#a9c3d5", "#93afc4", "#b7cfdf"], 2, 10, .5); g.strokeStyle = "rgba(240,248,252,.28)"; for (let k = 0; k < 26; k++) { g.lineWidth = .3 + R() * .6; g.beginPath(); let x = R() * w, y = R() * h; g.moveTo(x, y); for (let q = 0; q < 9; q++) { x += (R() - .5) * 50; y += (R() - .5) * 50; g.lineTo(x, y); } g.stroke(); } g.fillStyle = "rgba(255,255,255,.35)"; for (let k = 0; k < 40; k++) { g.beginPath(); g.arc(R() * w, R() * h, 2 + R() * 14, 0, 7); g.fill(); } })); }
+function pdzSnowFall(dt) { const p = FRSF.pts; if (!p) return; FRSF.t += dt; const a = p.geometry.attributes.position, A = a.array, c = F0.position;
+  for (let k = 0; k < A.length; k += 3) { A[k + 1] -= dt * (1.1 + (k % 7) * .12); A[k] += Math.sin(FRSF.t * .7 + k) * dt * .35 + dt * .6;
+    let x = A[k] - c.x, y = A[k + 1] - c.y, z = A[k + 2] - c.z; if (y < -4) A[k + 1] += 30; if (x > 30) A[k] -= 60; else if (x < -30) A[k] += 60; if (z > 30) A[k + 2] -= 60; else if (z < -30) A[k + 2] += 60; if (y > 26) A[k + 1] -= 30; }
+  a.needsUpdate = !0; }
 var FRSP = (() => { const P = []; for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2, r = 215 + 28 * Math.sin(2 * a + .6) + 14 * Math.sin(3 * a); P.push([Math.round(Math.sin(a) * r * 1.08), Math.round(-Math.cos(a) * r)]); } return P; })();
 function pdzNrm(cv, str) {
   const S = cv.width, g = cv.getContext("2d"), src = g.getImageData(0, 0, S, S).data, o2 = document.createElement("canvas"); o2.width = o2.height = S;
@@ -18402,12 +18409,31 @@ function ptSnowRoad() {
 /* dry winter shrubs poking out of the snow, telegraph poles with sagging wires along the road */
 function pdzSnowScene(rd, grp) {
   const T = rd.T, N = T.N, hw = rd.hw, R = Et(4242), HS = FRK.HS, B = [];
-  for (let k = 0; k < 2600; k++) { const x = (R() * 2 - 1) * HS, z = (R() * 2 - 1) * HS; if (frDist(rd, x, z) < hw + 3.5) continue;
-    const s = .35 + Math.pow(R(), 2.2) * 1.1; B.push({ x, y: SDh(x, z) - s * .25, z, sx: s * (1 + R() * .6), sy: s * (.55 + R() * .5), sz: s * (1 + R() * .6), ry: R() * 6.3 }); }
-  const bg = new C0.IcosahedronGeometry(1, 0);
-  frInst(bg, new C0.MeshStandardMaterial({ color: 0x5b4d3a, roughness: 1, flatShading: !0 }), B, grp);
-  const caps = B.map(b => ({ ...b, y: b.y + b.sy * .45, sx: b.sx * .8, sy: b.sy * .35, sz: b.sz * .8 }));
-  frInst(new C0.SphereGeometry(1, 8, 5), new C0.MeshStandardMaterial({ color: 0xf2f5f8, roughness: .85 }), caps, grp, !1);
+  /* dry grass and reeds poking through the snow, in clumps (crossed straw-coloured cards) */
+  const G = [];
+  for (let k = 0; k < 900; k++) { const cx = (R() * 2 - 1) * HS, cz = (R() * 2 - 1) * HS; if (frDist(rd, cx, cz) < hw + 4 || Math.hypot(cx - FRSL[0], cz - FRSL[1]) < FRSL[2] + 6) continue;
+    const n = 6 + (R() * 10 | 0); for (let q = 0; q < n; q++) { const x = cx + (R() - .5) * 2.4, z = cz + (R() - .5) * 2.4, s = .35 + R() * .6; G.push({ x, y: SDh(x, z) - .08, z, sx: .012 + R() * .01, sy: s, sz: .012 + R() * .01, rx: (R() - .5) * .5, rz: (R() - .5) * .5 }); } }
+  { const cg = new C0.CylinderGeometry(.4, 1, 1, 4); cg.translate(0, .5, 0);
+    frInst(cg, new C0.MeshStandardMaterial({ color: 0xa58456, roughness: .95 }), G, grp, !1); }
+  /* orange-and-black snow stakes along both edges so the plough finds the road: every 25 m, staggered */
+  const D = [], D2 = [];
+  for (let t = 0; t < N; t += 25) for (const sg of [-1, 1]) { const p = rd.pos(t + (sg > 0 ? 12 : 0), sg * (hw + 1.9)), y = SDh(p[0], p[1]);
+    D.push({ x: p[0], y: y - .1, z: p[1], sx: .045, sy: 1.75, sz: .045 }); D2.push({ x: p[0], y: y + 1.05, z: p[1], sx: .05, sy: .55, sz: .05 }); D2.push({ x: p[0], y: y + 1.55, z: p[1], sx: .05, sy: .12, sz: .05 }); }
+  { const cg = new C0.CylinderGeometry(1, 1, 1, 6); cg.translate(0, .5, 0);
+    frInst(cg, new C0.MeshStandardMaterial({ color: 0x1c1d1f, roughness: .6 }), D, grp, !1);
+    frInst(cg, new C0.MeshStandardMaterial({ color: 0xff7a1a, roughness: .35, emissive: 0xff5a00, emissiveIntensity: .25 }), D2, grp, !1); }
+  /* plough windrow: a continuous low snow ridge just off each edge */
+  for (const sg of [-1, 1]) { const cols = [hw + .15, hw + .7, hw + 1.3, hw + 2.1].map(v => v * sg), hy = [.05, .38, .32, .02];
+    const m = frStrip(rd, cols, [0, .33, .66, 1], c => hy[c], ptSnowBank(), 4); m.material.roughness = .85; m.material.normalMap = PTX.snBankN; m.material.polygonOffset = !1; grp.add(m); }
+  /* frozen lake inside the loop: a sheet of clear ice for drifting, snow lip round it */
+  { const L = FRSL, y0 = SDh(L[0], L[1]), seg = 96, ice = new C0.CircleGeometry(L[2], seg); ice.rotateX(-Math.PI / 2);
+    const m = new C0.Mesh(ice, new C0.MeshStandardMaterial({ map: ptIce(), color: 0xdbe8f1, roughness: .12, metalness: .1, envMapIntensity: 1.2 })); m.position.set(L[0], y0 + .03, L[1]); m.receiveShadow = !0; grp.add(m);
+    const lip = new C0.RingGeometry(L[2] - .4, L[2] + 3, seg, 1); lip.rotateX(-Math.PI / 2); const ml = new C0.Mesh(lip, new C0.MeshStandardMaterial({ map: ptSnowBank(), roughness: .85, transparent: !0, opacity: .9 })); ml.position.set(L[0], y0 + .05, L[1]); grp.add(ml); }
+  /* falling snow round the camera */
+  { const n = typeof O0 !== "undefined" && O0 ? 1500 : 3500, P3 = new Float32Array(n * 3); for (let k = 0; k < n; k++) { P3[k * 3] = (R() - .5) * 60; P3[k * 3 + 1] = R() * 30; P3[k * 3 + 2] = (R() - .5) * 60; }
+    const g4 = new C0.BufferGeometry(); g4.setAttribute("position", new C0.BufferAttribute(P3, 3));
+    const sp = pdzCv(32, 32, (g) => { const gr = g.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(.5, "rgba(255,255,255,.6)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); }, !1);
+    const pts = new C0.Points(g4, new C0.PointsMaterial({ size: .09, map: sp, transparent: !0, depthWrite: !1, opacity: .9, color: 0xffffff })); pts.frustumCulled = !1; grp.add(pts); FRSF.pts = pts; }
   /* poles on the right side every 42 m, two wires */
   const P = [], X = [], W = [], side = 1, off = hw + 5.5;
   for (let t = 0; t < N; t += 42) { const p = rd.pos(t, side * off), y = SDh(p[0], p[1]), hd = rd.head(t);
@@ -20394,7 +20420,7 @@ function SDh(x,z){
  const h=(H[k]*(1-fu)+H[k+1]*fu)*(1-fv)+(H[k+N]*(1-fu)+H[k+N+1]*fu)*fv;
  return SD.mz?h-mudD(x,z):h
 }
-function SDs(x,z){if(FRS&&SD.on){const N=SD.N,u=Math.round((x-SD.X0)*SD.inv),v=Math.round((z-SD.Z0)*SD.inv),c=u<0||v<0||u>=N||v>=N?0:SD.Sf[v*N+u];return c===1?(he.psnow||(he.psnow=Object.assign({},he.snow,{name:S("Укатанный снег"),mu:.72,lat:.8}))):he.snow}
+function SDs(x,z){if(FRS&&SD.on){const N=SD.N,u=Math.round((x-SD.X0)*SD.inv),v=Math.round((z-SD.Z0)*SD.inv),c=u<0||v<0||u>=N||v>=N?0:SD.Sf[v*N+u];return Math.hypot(x-FRSL[0],z-FRSL[1])<FRSL[2]?he.ice:c===1?(he.psnow||(he.psnow=Object.assign({},he.snow,{name:S("Укатанный снег"),mu:.72,lat:.8}))):he.snow}
  const u=Math.round((x-SD.X0)*SD.inv),v=Math.round((z-SD.Z0)*SD.inv),N=SD.N;
  if(u<0||v<0||u>=N||v>=N)return he.grass;
  switch(SD.Sf[v*N+u]){case 1:return he.asphalt;case 2:return he.gravel;case 3:return he.wet;case 4:return he.ice;case 5:return he.dirt;case 6:return he.mud;case 7:return he.dirt;default:return he.grass}
@@ -21375,7 +21401,7 @@ const FRX={lake:[15,-74,50],LW:-16,riv:[[-34,-470],[-22,-340],[-12,-282],[-5,-26
 (()=>{const P=FRX.riv;FRX.rl=[0];for(let i=1;i<P.length;i++)FRX.rl.push(FRX.rl[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]))})();
 function frRiv(x,z){const P=FRX.riv;let bd=1e9,bb=0;for(let i=0;i<P.length-1;i++){const ax=P[i][0],az=P[i][1],dx=P[i+1][0]-ax,dz=P[i+1][1]-az,L2=dx*dx+dz*dz,t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/L2)),d=Math.hypot(x-ax-dx*t,z-az-dz*t);if(d<bd){bd=d;bb=FRX.rb[i]+(FRX.rb[i+1]-FRX.rb[i])*t}}return[bd,bb]}
 function frLakeR(x,z){const L=FRX.lake;return L[2]+9*(C1(x*.03+20,z*.03+20)-.5)*2}
-function frH0(x,z){if(FRS){const e=Math.max(Math.abs(x),Math.abs(z)),m1=C1(x*.0018+11,z*.0018),m2=C1(x*.005+4,z*.005+2);return 7*(C1(x*.0045+3,z*.0045)-.5)+1.6*(C1(x*.02,z*.02+7)-.5)+.2*(C1(x*.09,z*.09)-.5)+scSm(FRK.HS+60,FRK.HS+800,e)*(20+150*m1*m1*(3-2*m1)+40*m2)}const HS=FRK.HS,e=Math.max(Math.abs(x),Math.abs(z));
+function frH0(x,z){if(FRS){const dl=Math.hypot(x-FRSL[0],z-FRSL[1]);if(dl<FRSL[2]+30){const f=scSm(FRSL[2]+30,FRSL[2]-4,dl),h0=frH0s(x,z);return h0*(1-f)+(frH0s(FRSL[0],FRSL[1])-.4)*f}return frH0s(x,z)}return frH0b(x,z)}function frH0s(x,z){{const e=Math.max(Math.abs(x),Math.abs(z)),m1=C1(x*.0018+11,z*.0018),m2=C1(x*.005+4,z*.005+2);return 7*(C1(x*.0045+3,z*.0045)-.5)+1.6*(C1(x*.02,z*.02+7)-.5)+.2*(C1(x*.09,z*.09)-.5)+scSm(FRK.HS+60,FRK.HS+800,e)*(20+150*m1*m1*(3-2*m1)+40*m2)}}function frH0b(x,z){const HS=FRK.HS,e=Math.max(Math.abs(x),Math.abs(z));
  let h=40*(C1(x*.0055,z*.0055)-.5)+14*(C1(x*.019+5,z*.019+2)-.5)+3*(C1(x*.07,z*.07)-.5)+75*scSm(HS-95,HS-8,e)*(.6+.7*C1(x*.012+9,z*.012));
  if(e>HS){const rid=1-Math.abs(C1(x*.0042+11,z*.0042)*2-1);h+=scSm(HS,HS+420,e)*(40+300*Math.pow(rid,1.7)+30*C1(x*.013,z*.013))}
  const L=FRX.lake,rl=Math.hypot(x-L[0],z-L[1]);if(rl<L[2]+40){const R=frLakeR(x,z),f=scSm(R+24,R-6,rl);h=h*(1-f)+(FRX.LW-4.2*scSm(R,R*.25,rl)+.9)*f;}
@@ -21485,7 +21511,7 @@ function frBuild(){const rd=frRoad();rd.fx=frFx(rd);frBake(rd);
  const p=rd.pos(0,-1.8);
  return{grp,rd,F:{gaps:[]},fr:[p[0],p[1],rd.head(0)],y0:rd.Hr[0]+.15}}
 function frLod(rd){if(!rd.lod)return;const c=typeof F0!=="undefined"?F0.position:{x:b.cx,z:b.cz},RN=(typeof O0!=="undefined"&&O0?120:175)+FRK.HS/8*.7;for(const t of rd.lod){const near=Math.hypot(t.x-c.x,t.z-c.z)<RN;if(t.n[0].visible!==near){t.n[0].visible=t.n[1].visible=near;t.f.visible=!near}}}
-function frTick(dt){SCN.rd&&SCN.rd.grassT&&(SCN.rd.grassT.value+=dt);const rd=SCN.rd;SCN.s=0;document.body.classList.add("sc-free");frLod(rd);frWater(dt);
+function frTick(dt){FRS&&pdzSnowFall(dt);SCN.rd&&SCN.rd.grassT&&(SCN.rd.grassT.value+=dt);const rd=SCN.rd;SCN.s=0;document.body.classList.add("sc-free");frLod(rd);frWater(dt);
  if(b.cy<SDh(b.cx,b.cz)-25||Math.abs(b.cx)>FRK.HS+20||Math.abs(b.cz)>FRK.HS+20){const L=rd.locate(b.cx,b.cz,1),i=L.i,p=rd.pos(i,-1.8);SCN.fr=fr=[p[0],p[1],rd.head(i)];SD.y=rd.Hr[i]+.15;Oa()}}
 function frCard(e,shots){if(document.getElementById("map-forest"))return;const n=document.createElement("button");n.type="button";n.className="mcard";n.dataset.cat="map";n.id="map-forest";
  n.innerHTML=`<span class="mc-img">${typeof FRIMG!=="undefined"&&FRIMG?`<img alt="" src="${FRIMG}">`:""}</span><span class="mc-lab">${LR("Лес · серпантин","Forest · serpentine")}</span>`;
@@ -22763,7 +22789,7 @@ function wxInit(){if(WX.init)return;WX.init=1;wxLoad();
    fragmentShader:"uniform float uA;uniform vec3 uCol;varying float vE;void main(){gl_FragColor=vec4(uCol,uA*(.15+.85*vE));}",transparent:!0,depthWrite:!1});
   const ln=new C0.LineSegments(g,m);ln.frustumCulled=!1;ln.renderOrder=9;ln.visible=!1;e0.add(ln);WX.rainM=ln;WX.rainN=n}}
 function wxEnv(){try{const sc=new zi,m=Qi(1);m.uniforms.uSun.value=WX.skySun;const me=new c0(new Or(50,48,24),m);sc.add(me);const t=Ki.fromScene(sc,.02,.1,200).texture;me.geometry.dispose();m.dispose();const old=un;un=t;if(e0.environment===old)e0.environment=t;old&&old!==t&&old!==G2&&old.dispose()}catch(x){console.error(x)}}
-function wxState(){const st=SD.on&&SCN.key==="studio";const t=st?13:WX.t,mode=st?"clear":WX.mode,r=st?0:mode==="rain"?WX.rain:mode==="storm"?Math.max(.85,WX.rain):0,cl=st?0:mode==="cloud"?.72:r>0?.86+.14*r:0;return{st,t,r,cl:FRS&&SD.on&&!st?Math.max(cl,.62):cl}}
+function wxState(){const st=SD.on&&SCN.key==="studio";const t=st?13:WX.t,mode=st?"clear":WX.mode,r=st?0:mode==="rain"?WX.rain:mode==="storm"?Math.max(.85,WX.rain):0,cl=st?0:mode==="cloud"?.72:r>0?.86+.14*r:0;return{st,t:FRS&&SD.on&&!st&&WX.t>10&&WX.t<17?15.4:t,r,cl:FRS&&SD.on&&!st?Math.max(cl,.62):cl}}
 const _wv=[0,0,0];
 function wxApply(S0){const{st,t,r,cl}=S0,S=wxSun(t),el=S.el,k=wxKey(el),B=WX.b;WX.night=Math.max(0,Math.min(1,(2-el)/10));WX.cl=cl;WX.r=r;
  const gr=[.5,.53,.58],L=c=>.3*c[0]+.59*c[1]+.11*c[2],ov=(c,a,m)=>{const l=L(c)*m;return c.map((x,i)=>x+(gr[i]*l/.53-x)*a)};
