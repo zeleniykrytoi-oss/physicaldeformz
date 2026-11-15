@@ -18304,20 +18304,69 @@ three/build/three.module.js:
 
 /* ======== PDZ: snow roads map + terrain detail ======== */
 var FRS = 0;
+function pdzNrm(cv, str) {
+  const S = cv.width, g = cv.getContext("2d"), src = g.getImageData(0, 0, S, S).data, o2 = document.createElement("canvas"); o2.width = o2.height = S;
+  const g2 = o2.getContext("2d"), out = g2.createImageData(S, S), d = out.data;
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const L = (xx, yy) => src[((((yy + S) % S) * S) + ((xx + S) % S)) * 4];
+    const dx = (L(x + 1, y) - L(x - 1, y)) / 255 * str, dy = (L(x, y + 1) - L(x, y - 1)) / 255 * str, l = Math.hypot(dx, dy, 1), k = (y * S + x) * 4;
+    d[k] = (-dx / l * .5 + .5) * 255; d[k + 1] = (dy / l * .5 + .5) * 255; d[k + 2] = (1 / l * .5 + .5) * 255; d[k + 3] = 255;
+  }
+  g2.putImageData(out, 0, 0); const t = new C0.CanvasTexture(o2); t.wrapS = t.wrapT = C0.RepeatWrapping; t.anisotropy = 8; t.needsUpdate = !0; return t;
+}
+/* height-ish canvases (lighter = higher) that become both the colour and the normal map */
+function pdzSnowH(S, seed, road) {
+  const c = document.createElement("canvas"); c.width = c.height = S; const g = c.getContext("2d"), R = Et(seed);
+  g.fillStyle = "#c8c8c8"; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 260; i++) { const x = R() * S, y = R() * S, r = 20 + R() * 90, gr = g.createRadialGradient(x, y, 0, x, y, r); const v = R() < .5 ? 255 : 120; gr.addColorStop(0, `rgba(${v},${v},${v},.10)`); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) { g.save(); g.translate(ox, oy); g.fillRect(x - r, y - r, 2 * r, 2 * r); g.restore(); } }
+  for (let i = 0; i < 40; i++) { const y = R() * S, a = R() * 6; g.strokeStyle = `rgba(255,255,255,${.05 + R() * .06})`; g.lineWidth = 3 + R() * 6; g.beginPath(); for (let x = -10; x <= S + 10; x += 16) g.lineTo(x, y + Math.sin(x * .02 + a) * 10 + Math.sin(x * .05 + a) * 4); g.stroke(); }
+  pdzNoise(g, S, S, R, S * S / 40, ["#d6d6d6", "#bdbdbd", "#e2e2e2"], 1, 2, .5);
+  if (road) {
+    for (const cx of [.13, .37, .63, .87]) for (let y = 0; y < S; y += 2) { const x = cx * S + Math.sin(y * .013 + cx * 9) * 6; g.fillStyle = `rgba(70,70,70,${.25 + R() * .12})`; g.fillRect(x - S * .055, y, S * .11, 2); g.fillStyle = `rgba(40,40,40,${.12 + R() * .1})`; for (let k = 0; k < 4; k++) g.fillRect(x - S * .045 + k * S * .03, y, 2, 2); }
+  }
+  return c;
+}
 function ptSnowRoad() {
-  return PTX.snRoad || (PTX.snRoad = pdzCv(512, 512, (g, w, h) => {
-    const R = Et(5151);
-    g.fillStyle = "#dfe5ec"; g.fillRect(0, 0, w, h);
-    pdzNoise(g, w, h, R, 9000, ["#e9eef4", "#d3dae3", "#f4f7fa", "#c9d1db"], 1, 3, .7);
-    for (const c of [.17, .33, .67, .83]) { const x = c * w; for (let y = 0; y < h; y += 2) { g.globalAlpha = .35 + .2 * R(); g.fillStyle = R() < .5 ? "#aab5c2" : "#b9c3cf"; g.fillRect(x - 22 + R() * 4, y, 40 + R() * 6, 2); } }
-    g.globalAlpha = .5; for (const c of [.17, .33, .67, .83]) { const x = c * w; for (let y = 0; y < h; y += 7) { g.fillStyle = "#9aa6b4"; g.fillRect(x - 18, y, 36, 2); } }
-    g.globalAlpha = 1;
-  }));
+  if (PTX.snRoad) return PTX.snRoad;
+  const H = pdzSnowH(1024, 5151, 1), c = document.createElement("canvas"); c.width = c.height = 1024; const g = c.getContext("2d"), R = Et(52);
+  g.drawImage(H, 0, 0); const im = g.getImageData(0, 0, 1024, 1024), d = im.data;
+  for (let k = 0; k < d.length; k += 4) { const v = d[k] / 255; d[k] = 120 + v * 125; d[k + 1] = 128 + v * 122; d[k + 2] = 140 + v * 112; }
+  g.putImageData(im, 0, 0);
+  /* faint centre line, half buried */
+  for (let y = 0; y < 1024; y += 128) for (let k = 0; k < 56; k += 2) if (R() < .7) { g.fillStyle = `rgba(214,170,60,${.35 + R() * .35})`; g.fillRect(509 + R() * 2, y + k, 6, 2); }
+  /* grey slush in the wheel tracks */
+  for (const cx of [.13, .37, .63, .87]) { g.fillStyle = "rgba(95,104,116,.18)"; g.fillRect(cx * 1024 - 40, 0, 80, 1024); }
+  pdzNoise(g, 1024, 1024, R, 2500, ["#ffffff"], 1, 1.6, .9);
+  const t = new C0.CanvasTexture(c); t.wrapS = t.wrapT = C0.RepeatWrapping; t.colorSpace = C0.SRGBColorSpace; t.anisotropy = 8; t.needsUpdate = !0;
+  PTX.snRoadN = pdzNrm(H, 3.5);
+  return PTX.snRoad = t;
 }
 function ptSnowBank() {
-  return PTX.snBank || (PTX.snBank = pdzCv(256, 256, (g, w, h) => { const R = Et(616); g.fillStyle = "#eef2f6"; g.fillRect(0, 0, w, h); pdzNoise(g, w, h, R, 4000, ["#f8fafc", "#dde4ec", "#e6ecf2"], 1, 4, .7); }));
+  if (PTX.snBank) return PTX.snBank;
+  const H = pdzSnowH(512, 616, 0), c = document.createElement("canvas"); c.width = c.height = 512; const g = c.getContext("2d"), R = Et(61);
+  g.drawImage(H, 0, 0); const im = g.getImageData(0, 0, 512, 512), d = im.data;
+  for (let k = 0; k < d.length; k += 4) { const v = d[k] / 255; d[k] = 196 + v * 58; d[k + 1] = 204 + v * 51; d[k + 2] = 216 + v * 39; }
+  g.putImageData(im, 0, 0); pdzNoise(g, 512, 512, R, 900, ["#ffffff"], 1, 1.4, 1);
+  const t = new C0.CanvasTexture(c); t.wrapS = t.wrapT = C0.RepeatWrapping; t.colorSpace = C0.SRGBColorSpace; t.anisotropy = 8; t.needsUpdate = !0;
+  PTX.snBankN = pdzNrm(H, 2.2);
+  return PTX.snBank = t;
 }
-function frSnowMat() { return PTX.snTM || (PTX.snTM = pdzTerrDetail(new C0.MeshStandardMaterial({ map: ptSnowBank(), vertexColors: !0, roughness: .82 }), 0)); }
+/* big snow clods thrown up along both edges of the road */
+function pdzSnowClods(rd, grp) {
+  const T = rd.T, N = T.N, R = Et(909), A = [], hw = rd.hw;
+  for (let i = 0; i < N; i += 1) for (const sg of [-1, 1]) { if (R() < .35) continue;
+    const l = sg * (hw + .35 + Math.pow(R(), 1.6) * 2.6), p = rd.pos(i + R(), l), s = .18 + Math.pow(R(), 2) * .7;
+    A.push({ x: p[0], y: SDh(p[0], p[1]) - s * .35, z: p[1], sx: s * (1 + R() * .8), sy: s * (.45 + R() * .4), sz: s * (1 + R() * .8), ry: R() * 6.3, rx: (R() - .5) * .4 }); }
+  let geo = new C0.SphereGeometry(1, 12, 8);
+  const pa = geo.attributes.position;
+  for (let k = 0; k < pa.count; k++) { const x = pa.getX(k), y = pa.getY(k), z = pa.getZ(k), f = .86 + .14 * Math.sin(x * 3.1 + 1) * Math.sin(y * 2.7 + 2) + .08 * Math.sin(z * 5.3 + x * 2); pa.setXYZ(k, x * f, y * f * (y < 0 ? .5 : 1), z * f); }
+  geo.computeVertexNormals();
+  { const nn = geo.attributes.normal, uv = new Float32Array(pa.count * 2); for (let k = 0; k < pa.count; k++) { uv[k * 2] = pa.getX(k) * .5 + .5; uv[k * 2 + 1] = pa.getZ(k) * .5 + .5; } geo.setAttribute("uv", new C0.BufferAttribute(uv, 2)); }
+  ptSnowBank();
+  frInst(geo, new C0.MeshStandardMaterial({ map: PTX.snBank, roughness: .9, color: 0xffffff }), A, grp, !1);
+}
+function pdzSnowRoadMesh(m) { m.material.normalMap = PTX.snRoadN; m.material.normalScale = new C0.Vector2(.9, .9); m.material.roughness = .62; m.material.needsUpdate = !0; return m; }
+function frSnowMat() { return PTX.snTM || (ptSnowBank(), PTX.snTM = pdzTerrDetail(new C0.MeshStandardMaterial({ map: PTX.snBank, normalMap: PTX.snBankN, normalScale: new C0.Vector2(.8, .8), vertexColors: !0, roughness: .74 }), 0)); }
 /* grey grain + rock strata, as data (not colour) */
 function pdzDetailTex() {
   if (PTX.terrDet) return PTX.terrDet;
@@ -18396,7 +18445,7 @@ function x6Cfg() {
       f: [78, 230], knock: 0.1, lo: 1300, hi: 4400, idle: 750, stall: 2400, up: 6500, down: 2600, red: 7000,
       gears: [4.71, 3.14, 2.11, 1.67, 1.29, 1, 0.84, 0.67], final: 3.3, turbo: 1.5,
     },
-    drive: { T: 600, awd: 1, rwd: 0, abs: 1, cda: 0.78, Ie: 0.2 },
+    drive: { T: 780, awd: 1, rwd: 0, abs: 1, cda: 0.62, Ie: 0.2 },
     susp: { k: 2.8, d: 2.1, a: 1.1 },
     str: 1.3,
     noBay: 1,   // the generic engine bay shows its red box through the wheel arches of this body
@@ -20263,7 +20312,7 @@ function SDh(x,z){
  const h=(H[k]*(1-fu)+H[k+1]*fu)*(1-fv)+(H[k+N]*(1-fu)+H[k+N+1]*fu)*fv;
  return SD.mz?h-mudD(x,z):h
 }
-function SDs(x,z){if(FRS&&SD.on)return he.snow;
+function SDs(x,z){if(FRS&&SD.on){const N=SD.N,u=Math.round((x-SD.X0)*SD.inv),v=Math.round((z-SD.Z0)*SD.inv),c=u<0||v<0||u>=N||v>=N?0:SD.Sf[v*N+u];return c===1?(he.psnow||(he.psnow=Object.assign({},he.snow,{name:S("Укатанный снег"),mu:.62,lat:.72}))):he.snow}
  const u=Math.round((x-SD.X0)*SD.inv),v=Math.round((z-SD.Z0)*SD.inv),N=SD.N;
  if(u<0||v<0||u>=N||v>=N)return he.grass;
  switch(SD.Sf[v*N+u]){case 1:return he.asphalt;case 2:return he.gravel;case 3:return he.wet;case 4:return he.ice;case 5:return he.dirt;case 6:return he.mud;case 7:return he.dirt;default:return he.grass}
@@ -21244,7 +21293,7 @@ const FRX={lake:[15,-74,50],LW:-16,riv:[[-34,-470],[-22,-340],[-12,-282],[-5,-26
 (()=>{const P=FRX.riv;FRX.rl=[0];for(let i=1;i<P.length;i++)FRX.rl.push(FRX.rl[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]))})();
 function frRiv(x,z){const P=FRX.riv;let bd=1e9,bb=0;for(let i=0;i<P.length-1;i++){const ax=P[i][0],az=P[i][1],dx=P[i+1][0]-ax,dz=P[i+1][1]-az,L2=dx*dx+dz*dz,t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/L2)),d=Math.hypot(x-ax-dx*t,z-az-dz*t);if(d<bd){bd=d;bb=FRX.rb[i]+(FRX.rb[i+1]-FRX.rb[i])*t}}return[bd,bb]}
 function frLakeR(x,z){const L=FRX.lake;return L[2]+9*(C1(x*.03+20,z*.03+20)-.5)*2}
-function frH0(x,z){const HS=FRK.HS,e=Math.max(Math.abs(x),Math.abs(z));
+function frH0(x,z){if(FRS)return 1.4*(C1(x*.006+3,z*.006)-.5)+.5*(C1(x*.025,z*.025+7)-.5)+.18*(C1(x*.09,z*.09)-.5);const HS=FRK.HS,e=Math.max(Math.abs(x),Math.abs(z));
  let h=40*(C1(x*.0055,z*.0055)-.5)+14*(C1(x*.019+5,z*.019+2)-.5)+3*(C1(x*.07,z*.07)-.5)+75*scSm(HS-95,HS-8,e)*(.6+.7*C1(x*.012+9,z*.012));
  if(e>HS){const rid=1-Math.abs(C1(x*.0042+11,z*.0042)*2-1);h+=scSm(HS,HS+420,e)*(40+300*Math.pow(rid,1.7)+30*C1(x*.013,z*.013))}
  const L=FRX.lake,rl=Math.hypot(x-L[0],z-L[1]);if(rl<L[2]+40){const R=frLakeR(x,z),f=scSm(R+24,R-6,rl);h=h*(1-f)+(FRX.LW-4.2*scSm(R,R*.25,rl)+.9)*f;}
@@ -21347,10 +21396,10 @@ function frTrees(rd,grp){const HS=FRK.HS,R=Et(4242),lo=typeof O0!=="undefined"&&
 function frBuild(){const rd=frRoad();rd.fx=frFx(rd);frBake(rd);
  const grp=new C0.Group();grp.name="scn";
  grp.add(frTerrain(rd));
- grp.add(frStrip(rd,[-rd.hw,rd.hw],[1,0],()=>.05,FRS?ptSnowRoad():ptAsphalt(1),FRS?16:12));
+ grp.add(FRS?pdzSnowRoadMesh(frStrip(rd,[-rd.hw,rd.hw],[1,0],()=>.05,ptSnowRoad(),12)):frStrip(rd,[-rd.hw,rd.hw],[1,0],()=>.05,ptAsphalt(1),12));
  for(const sg of[-1,1])grp.add(frStrip(rd,sg<0?[-rd.hw-FRK.sh-.4,-rd.hw]:[rd.hw,rd.hw+FRK.sh+.4],[0,1],c=>sg<0?(c?.04:-.06):(c?-.06:.04),FRS?ptSnowBank():ptGravel(),3));
- frRails(rd,grp);rd.nTrees=frTrees(rd,grp);
- frProps(rd,grp);frSkirt(rd,grp);if(!FRS)try{rd.nGrass=frGrass(rd,grp)}catch(x){console.error(x)}
+ if(!FRS){frRails(rd,grp);rd.nTrees=frTrees(rd,grp);
+ frProps(rd,grp)}else{rd.nTrees=0;pdzSnowClods(rd,grp)}frSkirt(rd,grp);if(!FRS)try{rd.nGrass=frGrass(rd,grp)}catch(x){console.error(x)}
  const p=rd.pos(0,-1.8);
  return{grp,rd,F:{gaps:[]},fr:[p[0],p[1],rd.head(0)],y0:rd.Hr[0]+.15}}
 function frLod(rd){if(!rd.lod)return;const c=typeof F0!=="undefined"?F0.position:{x:b.cx,z:b.cz},RN=(typeof O0!=="undefined"&&O0?120:175)+FRK.HS/8*.7;for(const t of rd.lod){const near=Math.hypot(t.x-c.x,t.z-c.z)<RN;if(t.n[0].visible!==near){t.n[0].visible=t.n[1].visible=near;t.f.visible=!near}}}
@@ -21545,13 +21594,13 @@ function frSkirt(rd,grp){const HS=FRK.HS,MS=2,n=Math.round(2*HS/MS),bd=[];
  const sOf=r=>HS+(RO-HS)*Math.pow(r/RR,1.55);
  for(let r=0;r<=RR;r++){const sc=sOf(r)/HS;for(let a=0;a<nb;a++){const x=bd[a][0]*sc,z=bd[a][1]*sc,k=r*nb+a,y=r===0?SDh(x,z):frH0(x,z);P[k*3]=x;P[k*3+1]=y;P[k*3+2]=z;U[k*2]=x/7;U[k*2+1]=z/7;
   const av=C1(x*.03+3,z*.03),v=.78+.3*av,base=Math.max(0,y-60),sn=scSm(230,330,y+C1(x*.02,z*.02)*40),rk=scSm(150,240,y),dk=scSm(0,1,r/3);
-  let cr=v*.93,cg=v*.98,cb=v*.85;cr+=(v*.62-cr)*dk*(1-rk);cg+=(v*.74-cg)*dk*(1-rk);cb+=(v*.55-cb)*dk*(1-rk);cr+=(1.05-cr)*rk;cg+=(1.02-cg)*rk;cb+=(.98-cb)*rk;cr+=(1.9-cr)*sn;cg+=(1.95-cg)*sn;cb+=(2.1-cb)*sn;C[k*3]=cr;C[k*3+1]=cg;C[k*3+2]=cb}}
+  let cr=v*.93,cg=v*.98,cb=v*.85;cr+=(v*.62-cr)*dk*(1-rk);cg+=(v*.74-cg)*dk*(1-rk);cb+=(v*.55-cb)*dk*(1-rk);cr+=(1.05-cr)*rk;cg+=(1.02-cg)*rk;cb+=(.98-cb)*rk;cr+=(1.9-cr)*sn;cg+=(1.95-cg)*sn;cb+=(2.1-cb)*sn;if(FRS){const s2=.9+.08*av;cr=s2;cg=s2+.01;cb=s2+.04}C[k*3]=cr;C[k*3+1]=cg;C[k*3+2]=cb}}
  for(let r=0;r<RR;r++)for(let a=0;a<nb;a++){const a0=r*nb+a,a1=r*nb+(a+1)%nb,b0=a0+nb,b1=a1+nb;I.push(a0,b0,a1,a1,b0,b1)}
  const g=new C0.BufferGeometry();g.setAttribute("position",new C0.BufferAttribute(P,3));g.setAttribute("color",new C0.BufferAttribute(C,3));g.setAttribute("uv",new C0.BufferAttribute(U,2));g.setIndex(I);g.computeVertexNormals();
  if(g.attributes.normal.getY(nb*3)<0){for(let i=0;i<I.length;i+=3){const t=I[i+1];I[i+1]=I[i+2];I[i+2]=t}g.setIndex(I);g.computeVertexNormals()}
- const m=new C0.Mesh(g,frTerrMat());m.receiveShadow=!0;m.frustumCulled=!1;grp.add(m);
+ const m=new C0.Mesh(g,FRS?frSnowMat():frTerrMat());m.receiveShadow=!0;m.frustumCulled=!1;grp.add(m);
  /* дальний лес — силуэты на склонах */
- const R=Et(515),lo=typeof O0!=="undefined"&&O0,cnt=lo?1800:3800,A=[];
+ const R=Et(515),lo=typeof O0!=="undefined"&&O0,cnt=FRS?0:lo?1800:3800,A=[];
  for(let t=0;t<cnt*5&&A.length<cnt;t++){const a=(R()*nb)|0,s=HS+3+Math.pow(R(),1.3)*420,sc=s/HS,x=bd[a][0]*sc,z=bd[a][1]*sc,y=frH0(x,z);if(y>205+C1(x*.02,z*.02)*40)continue;
   const sl=Math.hypot(frH0(x+3,z)-frH0(x-3,z),frH0(x,z+3)-frH0(x,z-3))/6;if(sl>1.05)continue;if(R()>C1(x*.008+2,z*.008)*1.5)continue;const H=14+R()*12;A.push({x,y:y-.5,z,ry:R()*3,sx:H*.55,sy:H,sz:H*.55})}
  const im=frInst(frImpGeo(.72),new C0.MeshStandardMaterial({map:ptSpruceImp(),alphaTest:.45,side:C0.DoubleSide,roughness:.9,color:0xc6d0c0}),A,grp,!1);
@@ -22395,7 +22444,7 @@ const SCS={
  jump:{key:"jump",store:"pdz-jp1",list:JPL,img:()=>JPIMG,len:L=>-JPK.z0+L.dist,win:()=>SCN.acc<=.18?LR("Точно в центр мишени!","Dead centre of the target!"):LR("Вы попали в воду","You landed in the water"),title:()=>LR("Прыжок с горы","Mountain Jump"),build:i=>jpBuild(i),tick:jpTick,phys:jpPhys},
  drift:{key:"drift",store:"pdz-dr1",list:DRL,img:()=>DRIMG,len:L=>drPath(L.pts).N,win:()=>LR("Очки: ","Score: ")+Math.round(SCN.dsc).toLocaleString("ru-RU")+LR(" · лучшее комбо "," · best combo ")+Math.round(SCN.dbest||0),title:()=>LR("Дрифт","Drift"),build:i=>drBuild(i),tick:drTick},
  forest:{key:"forest",store:"pdz-fr",list:FRL,free:1,img:()=>[],len:()=>2654,win:()=>"",title:()=>LR("Лес","Forest"),build:()=>(FRS=0,FRK.hw=3.6,frBuild()),tick:frTick},
- snow:{key:"snow",store:"pdz-sn",list:FRL,free:1,img:()=>[],len:()=>2654,win:()=>"",title:()=>LR("Снежные дороги","Snow roads"),build:()=>(FRS=1,FRK.hw=6,frBuild()),tick:frTick},
+ snow:{key:"snow",store:"pdz-sn",list:FRL,free:1,img:()=>[],len:()=>2654,win:()=>"",title:()=>LR("Снежные дороги","Snow roads"),build:()=>(FRS=1,FRK.hw=4,frBuild()),tick:frTick},
  ny:{key:"ny",store:"pdz-ny",list:[{n:"Нью-Йорк",e:"New York",tags:[],tagsE:[]}],free:1,img:()=>[],len:()=>1,win:()=>"",title:()=>LR("Нью-Йорк","New York"),build:()=>nyBuild(),tick:nyTick},
  offroad:{key:"offroad",store:"pdz-or1",list:ORL,car:"izba",img:()=>ORIMG,len:L=>L.len,win:()=>LR("Вы прошли трассу","You made it through"),title:()=>LR("Офроуд","Off-road"),build:i=>orBuild(i)}
 };
