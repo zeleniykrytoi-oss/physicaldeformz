@@ -18326,20 +18326,57 @@ function pdzSnowH(S, seed, road) {
   }
   return c;
 }
+/* cleared winter highway: dark wet asphalt in the wheel tracks, snow left between them and on the edges,
+   white edge lines and a double yellow centre line showing through */
 function ptSnowRoad() {
   if (PTX.snRoad) return PTX.snRoad;
-  const H = pdzSnowH(1024, 5151, 1), c = document.createElement("canvas"); c.width = c.height = 1024; const g = c.getContext("2d"), R = Et(52);
-  g.drawImage(H, 0, 0); const im = g.getImageData(0, 0, 1024, 1024), d = im.data;
-  for (let k = 0; k < d.length; k += 4) { const v = d[k] / 255; d[k] = 120 + v * 125; d[k + 1] = 128 + v * 122; d[k + 2] = 140 + v * 112; }
-  g.putImageData(im, 0, 0);
-  /* faint centre line, half buried */
-  for (let y = 0; y < 1024; y += 128) for (let k = 0; k < 56; k += 2) if (R() < .7) { g.fillStyle = `rgba(214,170,60,${.35 + R() * .35})`; g.fillRect(509 + R() * 2, y + k, 6, 2); }
-  /* grey slush in the wheel tracks */
-  for (const cx of [.13, .37, .63, .87]) { g.fillStyle = "rgba(95,104,116,.18)"; g.fillRect(cx * 1024 - 40, 0, 80, 1024); }
-  pdzNoise(g, 1024, 1024, R, 2500, ["#ffffff"], 1, 1.6, .9);
+  const S = 1024, R = Et(5151), c = document.createElement("canvas"), h = document.createElement("canvas"); c.width = c.height = h.width = h.height = S;
+  const g = c.getContext("2d"), q = h.getContext("2d");
+  g.fillStyle = "#3b3f44"; g.fillRect(0, 0, S, S); pdzNoise(g, S, S, R, 60000, ["#34383d", "#43474c", "#2e3236", "#4a4e53"], 1, 3, .8);
+  q.fillStyle = "#606060"; q.fillRect(0, 0, S, S); pdzNoise(q, S, S, R, 30000, ["#585858", "#686868"], 1, 2, .8);
+  /* wet sheen in the tracks */
+  for (const cx of [.2, .33, .67, .8]) { const gr = g.createLinearGradient(cx * S - 50, 0, cx * S + 50, 0); gr.addColorStop(0, "rgba(20,24,28,0)"); gr.addColorStop(.5, "rgba(20,24,28,.35)"); gr.addColorStop(1, "rgba(20,24,28,0)"); g.fillStyle = gr; g.fillRect(cx * S - 50, 0, 100, S); }
+  /* lines */
+  const line = (x0, w, col, dash) => { for (let y = 0; y < S; y += 2) { if (dash && (y % 256) > 150) continue; if (R() < .08) continue; g.fillStyle = col; g.fillRect(x0 + (R() - .5) * 1.5, y, w, 2); } };
+  line(S * .045, 13, "rgba(232,232,226,.9)"); line(S * .955 - 13, 13, "rgba(232,232,226,.9)");
+  line(S * .5 - 15, 10, "rgba(222,176,46,.9)"); line(S * .5 + 5, 10, "rgba(222,176,46,.9)");
+  /* snow: edges, the strip between the tracks of each lane, the crown in the middle; ragged, packed */
+  const snow = (cx, w, a) => {
+    const path = (ctx, col) => { ctx.beginPath();
+      for (let y = 0; y <= S; y += 4) { const ww = w * (.62 + .38 * Math.sin(y * .0123 + cx * 31) * Math.sin(y * .0307 + cx * 7)), x = cx * S + Math.sin(y * .0061 + cx * 13) * w * .15; ctx.lineTo(x - ww / 2, y); }
+      for (let y = S; y >= 0; y -= 4) { const ww = w * (.62 + .38 * Math.sin(y * .0123 + cx * 31) * Math.sin(y * .0307 + cx * 7)), x = cx * S + Math.sin(y * .0061 + cx * 13) * w * .15; ctx.lineTo(x + ww / 2, y); }
+      ctx.closePath(); ctx.fillStyle = col; ctx.fill(); };
+    g.save(); g.filter = "blur(3px)"; g.globalAlpha = a; path(g, "#e4e9ee"); g.restore();
+    q.save(); q.filter = "blur(4px)"; q.globalAlpha = a; path(q, "#d8d8d8"); q.restore(); };
+  snow(0, 120, 1); snow(1, 120, 1); snow(.265, 70, .9); snow(.735, 70, .9); snow(.5, 46, .55); snow(.12, 26, .5); snow(.88, 26, .5);
+  pdzNoise(g, S, S, R, 5000, ["#e6eaee", "#ffffff"], 1, 2.5, .55);
   const t = new C0.CanvasTexture(c); t.wrapS = t.wrapT = C0.RepeatWrapping; t.colorSpace = C0.SRGBColorSpace; t.anisotropy = 8; t.needsUpdate = !0;
-  PTX.snRoadN = pdzNrm(H, 3.5);
+  PTX.snRoadN = pdzNrm(h, 5);
   return PTX.snRoad = t;
+}
+/* dry winter shrubs poking out of the snow, telegraph poles with sagging wires along the road */
+function pdzSnowScene(rd, grp) {
+  const T = rd.T, N = T.N, hw = rd.hw, R = Et(4242), HS = FRK.HS, B = [];
+  for (let k = 0; k < 2600; k++) { const x = (R() * 2 - 1) * HS, z = (R() * 2 - 1) * HS; if (frDist(rd, x, z) < hw + 3.5) continue;
+    const s = .35 + Math.pow(R(), 2.2) * 1.1; B.push({ x, y: SDh(x, z) - s * .25, z, sx: s * (1 + R() * .6), sy: s * (.55 + R() * .5), sz: s * (1 + R() * .6), ry: R() * 6.3 }); }
+  const bg = new C0.IcosahedronGeometry(1, 0);
+  frInst(bg, new C0.MeshStandardMaterial({ color: 0x5b4d3a, roughness: 1, flatShading: !0 }), B, grp);
+  const caps = B.map(b => ({ ...b, y: b.y + b.sy * .45, sx: b.sx * .8, sy: b.sy * .35, sz: b.sz * .8 }));
+  frInst(new C0.SphereGeometry(1, 8, 5), new C0.MeshStandardMaterial({ color: 0xf2f5f8, roughness: .85 }), caps, grp, !1);
+  /* poles on the right side every 42 m, two wires */
+  const P = [], X = [], W = [], side = 1, off = hw + 5.5;
+  for (let t = 0; t < N; t += 42) { const p = rd.pos(t, side * off), y = SDh(p[0], p[1]), hd = rd.head(t);
+    P.push({ x: p[0], y, z: p[1], sx: .13, sy: 8.5, sz: .13 }); X.push({ x: p[0], y: y + 8.1, z: p[1], sx: 1.9, sy: .12, sz: .12, ry: -hd + Math.PI / 2 });
+    W.push([p[0], y, p[1], hd]); }
+  const cy = new C0.CylinderGeometry(1, 1.15, 1, 7); cy.translate(0, .5, 0);
+  const wood = new C0.MeshStandardMaterial({ color: 0x4a3a2b, roughness: .95 });
+  frInst(cy, wood, P, grp); frInst(new C0.BoxGeometry(1, 1, 1), wood, X, grp);
+  const L = [];
+  for (let k = 0; k < W.length; k++) { const a = W[k], b = W[(k + 1) % W.length]; if (Math.hypot(a[0] - b[0], a[2] - b[2]) > 80) continue;
+    for (const o of [-.8, .8]) { const ax = a[0] + Math.cos(a[3]) * o, az = a[2] - Math.sin(a[3]) * o, bx = b[0] + Math.cos(b[3]) * o, bz = b[2] - Math.sin(b[3]) * o;
+      let px = ax, py = a[1] + 8.18, pz = az; for (let s = 1; s <= 8; s++) { const u = s / 8, x = ax + (bx - ax) * u, z = az + (bz - az) * u, y = a[1] + (b[1] - a[1]) * u + 8.18 - 1.1 * 4 * u * (1 - u); L.push(px, py, pz, x, y, z); px = x; py = y; pz = z; } } }
+  const lg = new C0.BufferGeometry(); lg.setAttribute("position", new C0.Float32BufferAttribute(L, 3));
+  const ln = new C0.LineSegments(lg, new C0.LineBasicMaterial({ color: 0x1a1c1e })); ln.frustumCulled = !1; grp.add(ln);
 }
 function ptSnowBank() {
   if (PTX.snBank) return PTX.snBank;
@@ -18356,7 +18393,7 @@ function pdzSnowClods(rd, grp) {
   const T = rd.T, N = T.N, R = Et(909), A = [], hw = rd.hw;
   for (let i = 0; i < N; i += 1) for (const sg of [-1, 1]) { if (R() < .35) continue;
     const l = sg * (hw + .35 + Math.pow(R(), 1.6) * 2.6), p = rd.pos(i + R(), l), s = .18 + Math.pow(R(), 2) * .7;
-    A.push({ x: p[0], y: SDh(p[0], p[1]) - s * .35, z: p[1], sx: s * (1 + R() * .8), sy: s * (.45 + R() * .4), sz: s * (1 + R() * .8), ry: R() * 6.3, rx: (R() - .5) * .4 }); }
+    A.push({ x: p[0], y: SDh(p[0], p[1]) - s * .45, z: p[1], sx: s * (1 + R() * .8), sy: s * (.45 + R() * .4), sz: s * (1 + R() * .8), ry: R() * 6.3, rx: (R() - .5) * .4 }); }
   let geo = new C0.SphereGeometry(1, 12, 8);
   const pa = geo.attributes.position;
   for (let k = 0; k < pa.count; k++) { const x = pa.getX(k), y = pa.getY(k), z = pa.getZ(k), f = .86 + .14 * Math.sin(x * 3.1 + 1) * Math.sin(y * 2.7 + 2) + .08 * Math.sin(z * 5.3 + x * 2); pa.setXYZ(k, x * f, y * f * (y < 0 ? .5 : 1), z * f); }
@@ -20312,7 +20349,7 @@ function SDh(x,z){
  const h=(H[k]*(1-fu)+H[k+1]*fu)*(1-fv)+(H[k+N]*(1-fu)+H[k+N+1]*fu)*fv;
  return SD.mz?h-mudD(x,z):h
 }
-function SDs(x,z){if(FRS&&SD.on){const N=SD.N,u=Math.round((x-SD.X0)*SD.inv),v=Math.round((z-SD.Z0)*SD.inv),c=u<0||v<0||u>=N||v>=N?0:SD.Sf[v*N+u];return c===1?(he.psnow||(he.psnow=Object.assign({},he.snow,{name:S("Укатанный снег"),mu:.62,lat:.72}))):he.snow}
+function SDs(x,z){if(FRS&&SD.on){const N=SD.N,u=Math.round((x-SD.X0)*SD.inv),v=Math.round((z-SD.Z0)*SD.inv),c=u<0||v<0||u>=N||v>=N?0:SD.Sf[v*N+u];return c===1?(he.psnow||(he.psnow=Object.assign({},he.snow,{name:S("Укатанный снег"),mu:.72,lat:.8}))):he.snow}
  const u=Math.round((x-SD.X0)*SD.inv),v=Math.round((z-SD.Z0)*SD.inv),N=SD.N;
  if(u<0||v<0||u>=N||v>=N)return he.grass;
  switch(SD.Sf[v*N+u]){case 1:return he.asphalt;case 2:return he.gravel;case 3:return he.wet;case 4:return he.ice;case 5:return he.dirt;case 6:return he.mud;case 7:return he.dirt;default:return he.grass}
@@ -21293,7 +21330,7 @@ const FRX={lake:[15,-74,50],LW:-16,riv:[[-34,-470],[-22,-340],[-12,-282],[-5,-26
 (()=>{const P=FRX.riv;FRX.rl=[0];for(let i=1;i<P.length;i++)FRX.rl.push(FRX.rl[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]))})();
 function frRiv(x,z){const P=FRX.riv;let bd=1e9,bb=0;for(let i=0;i<P.length-1;i++){const ax=P[i][0],az=P[i][1],dx=P[i+1][0]-ax,dz=P[i+1][1]-az,L2=dx*dx+dz*dz,t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/L2)),d=Math.hypot(x-ax-dx*t,z-az-dz*t);if(d<bd){bd=d;bb=FRX.rb[i]+(FRX.rb[i+1]-FRX.rb[i])*t}}return[bd,bb]}
 function frLakeR(x,z){const L=FRX.lake;return L[2]+9*(C1(x*.03+20,z*.03+20)-.5)*2}
-function frH0(x,z){if(FRS)return 1.4*(C1(x*.006+3,z*.006)-.5)+.5*(C1(x*.025,z*.025+7)-.5)+.18*(C1(x*.09,z*.09)-.5);const HS=FRK.HS,e=Math.max(Math.abs(x),Math.abs(z));
+function frH0(x,z){if(FRS){const e=Math.max(Math.abs(x),Math.abs(z)),rid=1-Math.abs(C1(x*.0035+11,z*.0035)*2-1);return 9*(C1(x*.0045+3,z*.0045)-.5)+2.2*(C1(x*.02,z*.02+7)-.5)+.25*(C1(x*.09,z*.09)-.5)+scSm(FRK.HS+60,FRK.HS+700,e)*(25+170*Math.pow(rid,1.8))}const HS=FRK.HS,e=Math.max(Math.abs(x),Math.abs(z));
  let h=40*(C1(x*.0055,z*.0055)-.5)+14*(C1(x*.019+5,z*.019+2)-.5)+3*(C1(x*.07,z*.07)-.5)+75*scSm(HS-95,HS-8,e)*(.6+.7*C1(x*.012+9,z*.012));
  if(e>HS){const rid=1-Math.abs(C1(x*.0042+11,z*.0042)*2-1);h+=scSm(HS,HS+420,e)*(40+300*Math.pow(rid,1.7)+30*C1(x*.013,z*.013))}
  const L=FRX.lake,rl=Math.hypot(x-L[0],z-L[1]);if(rl<L[2]+40){const R=frLakeR(x,z),f=scSm(R+24,R-6,rl);h=h*(1-f)+(FRX.LW-4.2*scSm(R,R*.25,rl)+.9)*f;}
@@ -21399,7 +21436,7 @@ function frBuild(){const rd=frRoad();rd.fx=frFx(rd);frBake(rd);
  grp.add(FRS?pdzSnowRoadMesh(frStrip(rd,[-rd.hw,rd.hw],[1,0],()=>.05,ptSnowRoad(),12)):frStrip(rd,[-rd.hw,rd.hw],[1,0],()=>.05,ptAsphalt(1),12));
  for(const sg of[-1,1])grp.add(frStrip(rd,sg<0?[-rd.hw-FRK.sh-.4,-rd.hw]:[rd.hw,rd.hw+FRK.sh+.4],[0,1],c=>sg<0?(c?.04:-.06):(c?-.06:.04),FRS?ptSnowBank():ptGravel(),3));
  if(!FRS){frRails(rd,grp);rd.nTrees=frTrees(rd,grp);
- frProps(rd,grp)}else{rd.nTrees=0;pdzSnowClods(rd,grp)}frSkirt(rd,grp);if(!FRS)try{rd.nGrass=frGrass(rd,grp)}catch(x){console.error(x)}
+ frProps(rd,grp)}else{rd.nTrees=0;pdzSnowClods(rd,grp);pdzSnowScene(rd,grp)}frSkirt(rd,grp);if(!FRS)try{rd.nGrass=frGrass(rd,grp)}catch(x){console.error(x)}
  const p=rd.pos(0,-1.8);
  return{grp,rd,F:{gaps:[]},fr:[p[0],p[1],rd.head(0)],y0:rd.Hr[0]+.15}}
 function frLod(rd){if(!rd.lod)return;const c=typeof F0!=="undefined"?F0.position:{x:b.cx,z:b.cz},RN=(typeof O0!=="undefined"&&O0?120:175)+FRK.HS/8*.7;for(const t of rd.lod){const near=Math.hypot(t.x-c.x,t.z-c.z)<RN;if(t.n[0].visible!==near){t.n[0].visible=t.n[1].visible=near;t.f.visible=!near}}}
