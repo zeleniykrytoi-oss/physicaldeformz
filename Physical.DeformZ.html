@@ -18409,19 +18409,6 @@ function ptSnowRoad() {
 /* dry winter shrubs poking out of the snow, telegraph poles with sagging wires along the road */
 function pdzSnowScene(rd, grp) {
   const T = rd.T, N = T.N, hw = rd.hw, R = Et(4242), HS = FRK.HS, B = [];
-  /* dry grass and reeds poking through the snow, in clumps (crossed straw-coloured cards) */
-  const G = [];
-  for (let k = 0; k < 900; k++) { const cx = (R() * 2 - 1) * HS, cz = (R() * 2 - 1) * HS; if (frDist(rd, cx, cz) < hw + 4 || Math.hypot(cx - FRSL[0], cz - FRSL[1]) < FRSL[2] + 6) continue;
-    const n = 6 + (R() * 10 | 0); for (let q = 0; q < n; q++) { const x = cx + (R() - .5) * 2.4, z = cz + (R() - .5) * 2.4, s = .35 + R() * .6; G.push({ x, y: SDh(x, z) - .08, z, sx: .012 + R() * .01, sy: s, sz: .012 + R() * .01, rx: (R() - .5) * .5, rz: (R() - .5) * .5 }); } }
-  { const cg = new C0.CylinderGeometry(.35, 1, 1, 5, 1); cg.translate(0, .5, 0);
-    frInst(cg, new C0.MeshStandardMaterial({ color: 0xa58456, roughness: .95 }), G, grp, !1); }
-  /* orange-and-black snow stakes along both edges so the plough finds the road: every 25 m, staggered */
-  const D = [], D2 = [];
-  for (let t = 0; t < N; t += 25) for (const sg of [-1, 1]) { const p = rd.pos(t + (sg > 0 ? 12 : 0), sg * (hw + 1.9)), y = SDh(p[0], p[1]);
-    D.push({ x: p[0], y: y - .1, z: p[1], sx: .045, sy: 1.75, sz: .045 }); D2.push({ x: p[0], y: y + 1.05, z: p[1], sx: .05, sy: .55, sz: .05 }); D2.push({ x: p[0], y: y + 1.55, z: p[1], sx: .05, sy: .12, sz: .05 }); }
-  { const cg = new C0.CylinderGeometry(1, 1, 1, 14); cg.translate(0, .5, 0);
-    frInst(cg, new C0.MeshStandardMaterial({ color: 0x1c1d1f, roughness: .6 }), D, grp, !1);
-    frInst(cg, new C0.MeshStandardMaterial({ color: 0xff7a1a, roughness: .35, emissive: 0xff5a00, emissiveIntensity: .25 }), D2, grp, !1); }
   /* plough windrow: a continuous low snow ridge just off each edge */
   for (const sg of [-1, 1]) { const K = 12, cols = [], hy = [], us = []; for (let q = 0; q <= K; q++) { const u = q / K, d = hw + .1 + u * 2.3; cols.push(d * sg); us.push(u); hy.push(.02 + .4 * Math.pow(Math.sin(Math.PI * Math.pow(u, .8)), 1.6)); }
     const m = frStrip(rd, cols, us, c => hy[c], ptSnowBank(), 4); m.material.roughness = .85; m.material.normalMap = PTX.snBankN; m.material.polygonOffset = !1; grp.add(m); }
