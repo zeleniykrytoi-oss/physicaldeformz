@@ -18413,20 +18413,20 @@ function pdzSnowScene(rd, grp) {
   const G = [];
   for (let k = 0; k < 900; k++) { const cx = (R() * 2 - 1) * HS, cz = (R() * 2 - 1) * HS; if (frDist(rd, cx, cz) < hw + 4 || Math.hypot(cx - FRSL[0], cz - FRSL[1]) < FRSL[2] + 6) continue;
     const n = 6 + (R() * 10 | 0); for (let q = 0; q < n; q++) { const x = cx + (R() - .5) * 2.4, z = cz + (R() - .5) * 2.4, s = .35 + R() * .6; G.push({ x, y: SDh(x, z) - .08, z, sx: .012 + R() * .01, sy: s, sz: .012 + R() * .01, rx: (R() - .5) * .5, rz: (R() - .5) * .5 }); } }
-  { const cg = new C0.CylinderGeometry(.4, 1, 1, 4); cg.translate(0, .5, 0);
+  { const cg = new C0.CylinderGeometry(.35, 1, 1, 5, 1); cg.translate(0, .5, 0);
     frInst(cg, new C0.MeshStandardMaterial({ color: 0xa58456, roughness: .95 }), G, grp, !1); }
   /* orange-and-black snow stakes along both edges so the plough finds the road: every 25 m, staggered */
   const D = [], D2 = [];
   for (let t = 0; t < N; t += 25) for (const sg of [-1, 1]) { const p = rd.pos(t + (sg > 0 ? 12 : 0), sg * (hw + 1.9)), y = SDh(p[0], p[1]);
     D.push({ x: p[0], y: y - .1, z: p[1], sx: .045, sy: 1.75, sz: .045 }); D2.push({ x: p[0], y: y + 1.05, z: p[1], sx: .05, sy: .55, sz: .05 }); D2.push({ x: p[0], y: y + 1.55, z: p[1], sx: .05, sy: .12, sz: .05 }); }
-  { const cg = new C0.CylinderGeometry(1, 1, 1, 6); cg.translate(0, .5, 0);
+  { const cg = new C0.CylinderGeometry(1, 1, 1, 14); cg.translate(0, .5, 0);
     frInst(cg, new C0.MeshStandardMaterial({ color: 0x1c1d1f, roughness: .6 }), D, grp, !1);
     frInst(cg, new C0.MeshStandardMaterial({ color: 0xff7a1a, roughness: .35, emissive: 0xff5a00, emissiveIntensity: .25 }), D2, grp, !1); }
   /* plough windrow: a continuous low snow ridge just off each edge */
-  for (const sg of [-1, 1]) { const cols = [hw + .15, hw + .7, hw + 1.3, hw + 2.1].map(v => v * sg), hy = [.05, .38, .32, .02];
-    const m = frStrip(rd, cols, [0, .33, .66, 1], c => hy[c], ptSnowBank(), 4); m.material.roughness = .85; m.material.normalMap = PTX.snBankN; m.material.polygonOffset = !1; grp.add(m); }
+  for (const sg of [-1, 1]) { const K = 12, cols = [], hy = [], us = []; for (let q = 0; q <= K; q++) { const u = q / K, d = hw + .1 + u * 2.3; cols.push(d * sg); us.push(u); hy.push(.02 + .4 * Math.pow(Math.sin(Math.PI * Math.pow(u, .8)), 1.6)); }
+    const m = frStrip(rd, cols, us, c => hy[c], ptSnowBank(), 4); m.material.roughness = .85; m.material.normalMap = PTX.snBankN; m.material.polygonOffset = !1; grp.add(m); }
   /* frozen lake inside the loop: a sheet of clear ice for drifting, snow lip round it */
-  { const L = FRSL, y0 = SDh(L[0], L[1]), seg = 96, ice = new C0.CircleGeometry(L[2], seg); ice.rotateX(-Math.PI / 2);
+  { const L = FRSL, y0 = SDh(L[0], L[1]), seg = 96, ice = new C0.CircleGeometry(L[2], 160); ice.rotateX(-Math.PI / 2);
     const m = new C0.Mesh(ice, new C0.MeshStandardMaterial({ map: ptIce(), color: 0xdbe8f1, roughness: .12, metalness: .1, envMapIntensity: 1.2 })); m.position.set(L[0], y0 + .03, L[1]); m.receiveShadow = !0; grp.add(m);
     const lip = new C0.RingGeometry(L[2] - .4, L[2] + 3, seg, 1); lip.rotateX(-Math.PI / 2); const ml = new C0.Mesh(lip, new C0.MeshStandardMaterial({ map: ptSnowBank(), roughness: .85, transparent: !0, opacity: .9 })); ml.position.set(L[0], y0 + .05, L[1]); grp.add(ml); }
   /* falling snow round the camera */
@@ -18439,7 +18439,7 @@ function pdzSnowScene(rd, grp) {
   for (let t = 0; t < N; t += 42) { const p = rd.pos(t, side * off), y = SDh(p[0], p[1]), hd = rd.head(t);
     P.push({ x: p[0], y, z: p[1], sx: .13, sy: 8.5, sz: .13 }); X.push({ x: p[0], y: y + 8.1, z: p[1], sx: 1.9, sy: .12, sz: .12, ry: -hd + Math.PI / 2 });
     W.push([p[0], y, p[1], hd]); }
-  const cy = new C0.CylinderGeometry(1, 1.15, 1, 7); cy.translate(0, .5, 0);
+  const cy = new C0.CylinderGeometry(1, 1.15, 1, 16); cy.translate(0, .5, 0);
   const wood = new C0.MeshStandardMaterial({ color: 0x4a3a2b, roughness: .95 });
   frInst(cy, wood, P, grp); frInst(new C0.BoxGeometry(1, 1, 1), wood, X, grp);
   const L = [];
@@ -18462,10 +18462,10 @@ function ptSnowBank() {
 /* big snow clods thrown up along both edges of the road */
 function pdzSnowClods(rd, grp) {
   const T = rd.T, N = T.N, R = Et(909), A = [], hw = rd.hw;
-  for (let i = 0; i < N; i += 1) for (const sg of [-1, 1]) { if (R() < .35) continue;
+  for (let i = 0; i < N; i += 1) for (const sg of [-1, 1]) { if (R() < .6) continue;
     const l = sg * (hw + .35 + Math.pow(R(), 1.6) * 2.6), p = rd.pos(i + R(), l), s = .18 + Math.pow(R(), 2) * .7;
     A.push({ x: p[0], y: SDh(p[0], p[1]) - s * .45, z: p[1], sx: s * (1 + R() * .8), sy: s * (.45 + R() * .4), sz: s * (1 + R() * .8), ry: R() * 6.3, rx: (R() - .5) * .4 }); }
-  let geo = new C0.SphereGeometry(1, 12, 8);
+  let geo = new C0.SphereGeometry(1, 16, 10);
   const pa = geo.attributes.position;
   for (let k = 0; k < pa.count; k++) { const x = pa.getX(k), y = pa.getY(k), z = pa.getZ(k), f = .86 + .14 * Math.sin(x * 3.1 + 1) * Math.sin(y * 2.7 + 2) + .08 * Math.sin(z * 5.3 + x * 2); pa.setXYZ(k, x * f, y * f * (y < 0 ? .5 : 1), z * f); }
   geo.computeVertexNormals();
