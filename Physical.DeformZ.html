@@ -18446,16 +18446,42 @@ function pdzDiag() {
     for (let k = 0; k < S; k++) if (top[k] > tmax - .1) g.push(k);
     D.glass = g.length ? [X(g[0]), X(g[g.length - 1])] : null;
     const L = z1 - z0; D.wh = (pdzWheels() || []).map((w) => ({ x: ((w.cz - z0) / L) * W, y: Y(w.cx), r: (w.r / L) * W, w: Math.max(5, (w.width / xm) * (Hh / 2)), left: w.left, front: w.front }));
+    { const X2 = (z) => ((z - z0) / (z1 - z0)) * W, sm2 = []; const rng = {};
+      for (let i = 0; i < H; i++) { const p = Y0[i]; if (p === pdzPartEnum().FRAME) continue; const r = rng[p] || (rng[p] = [1e9, -1e9]); r[0] = Math.min(r[0], m0[i]); r[1] = Math.max(r[1], m0[i]); }
+      const P = pdzPartEnum(), line = (z, side) => sm2.push([X2(z), side]);
+      if (rng[P.HOOD]) line(rng[P.HOOD][0], 0);
+      if (rng[P.TAILGATE]) line(rng[P.TAILGATE][1], 0);
+      for (const [d, sd] of [[P.DOOR_FL, 1], [P.DOOR_RL, 1], [P.DOOR_FR, -1], [P.DOOR_RR, -1]]) if (rng[d]) { line(rng[d][0], sd); line(rng[d][1], sd); }
+      D.seams = sm2; }
+    D.S = S; D.Xf = (z) => ((z - z0) / (z1 - z0)) * W; D.Yf = Y; D.W = W; D.Hh = Hh;
     D.cell = c; D.z0 = z0; D.z1 = z1; D.xm = xm; D.out = new Float32Array(NZ * NX); D.tmp = Array.from({ length: NZ * NX }, () => []); D.id = I; D.sig = (Math.random() * 1e9) | 0;
   }
   const T = D.tmp, o = D.out, c = D.cell;
   for (const a of T) a.length = 0;
   for (let i = 0; i < H; i++) T[c[i]].push(Gt[i] || 0);
   for (let k = 0; k < T.length; k++) { const a = T[k]; if (!a.length) { o[k] = -1; continue; } a.sort((x, y) => y - x); const n = Math.max(1, Math.ceil(a.length * .3)); let s = 0; for (let j = 0; j < n; j++) s += a[j]; o[k] = Math.min(1, Math.max(0, s / n - .22) * 1.9); }
-  return { sig: D.sig, nz: D.nz, nx: D.nx, path: D.path, glass: D.glass, wh: D.wh, z: o, det: (pdzWheels() || []).map((w) => w.wb && w.wb.det ? 1 : 0) };
+  let live = "";
+  try {
+    const R = b.R, S = D.S, hw2 = new Float32Array(S), zx = [1e9, -1e9]; let cx = 0, cz = 0, rx = 0, rz = 0;
+    const lx = new Float32Array(H), lz = new Float32Array(H);
+    for (let i = 0; i < H; i++) { const dx = Z[i] - b.cx, dy = V[i] - b.cy, dz = X[i] - b.cz; lx[i] = dx * R[0] + dy * R[3] + dz * R[6]; lz[i] = dx * R[2] + dy * R[5] + dz * R[8]; }
+    for (let i = 0; i < H; i++) if (Y0[i] === W.FRAME) { cx += lx[i] - b0[i]; cz += lz[i] - m0[i]; rx++; }
+    rx = rx || 1; cx /= rx; cz /= rx;
+    for (let i = 0; i < H; i++) { const x = lx[i] - cx, z = lz[i] - cz, u = (z - D.z0) / (D.z1 - D.z0); if (u < -.2 || u > 1.2) continue; const k = Math.max(0, Math.min(S - 1, Math.round(u * (S - 1)))); hw2[k] = Math.max(hw2[k], Math.min(D.xm * 1.15, Math.abs(x))); zx[0] = Math.min(zx[0], z); zx[1] = Math.max(zx[1], z); }
+    let a = 0; while (a < S && hw2[a] < .05) a++; let e = S - 1; while (e > 0 && hw2[e] < .05) e--;
+    if (e > a) { let sm = Array.from(hw2, (v, k) => { let m = 0; for (let j = Math.max(a, k - 2); j <= Math.min(e, k + 2); j++) m = Math.max(m, hw2[j]); return m; });
+      for (let it = 0; it < 2; it++) sm = sm.map((v, k) => (v * 2 + (sm[k - 1] ?? v) + (sm[k + 1] ?? v)) / 4);
+      const Xk = (k) => (k / (S - 1)) * D.W, zl = D.Xf(zx[0]), zr = D.Xf(zx[1]);
+      live = "M" + Math.max(-4, zl).toFixed(1) + " " + D.Yf(sm[a] * .7).toFixed(1);
+      for (let k = a; k <= e; k++) live += " L" + (k === e ? Math.min(D.W + 4, zr) : k === a ? Math.max(-4, zl) : Xk(k)).toFixed(1) + " " + D.Yf(sm[k] * (k === a || k === e ? .82 : 1)).toFixed(1);
+      for (let k = e; k >= a; k--) live += " L" + (k === e ? Math.min(D.W + 4, zr) : k === a ? Math.max(-4, zl) : Xk(k)).toFixed(1) + " " + D.Yf(-sm[k] * (k === a || k === e ? .82 : 1)).toFixed(1);
+      live += "Z"; }
+  } catch (er) {}
+  return { live, seams: D.seams || [], sig: D.sig, nz: D.nz, nx: D.nx, path: D.path, glass: D.glass, wh: D.wh, z: o, det: (pdzWheels() || []).map((w) => w.wb && w.wb.det ? 1 : 0) };
 }
 window.__pdzDiag = pdzDiag;
 function pdzWheels() { return z0; }
+function pdzPartEnum() { return W; }
 
 /* ======== PDZ HUD: damage by zone of the body ======== */
 var PDZZ = { id: null, zone: null, out: new Float32Array(8), tmp: [[], [], [], [], [], [], [], []] };
@@ -23622,14 +23648,21 @@ roughnessFactor = clamp(roughnessFactor + (gwN(vGW.xz * 0.11 + 7.0) - 0.5) * 0.1
     return 'rgba(' + r.map(Math.round).join(',') + ',.9)';
   }
   function draw(r){
-    var W = 180, Hh = 100, cw = W / r.nz, ch = Hh / r.nx, h = '<svg viewBox="-6 -6 192 112" aria-hidden="true"><defs><clipPath id="pd7c"><path d="' + r.path + '"/></clipPath></defs>';
+    var W = 180, Hh = 100, cw = W / r.nz, ch = Hh / r.nx, h = '<svg viewBox="-6 -6 192 112" aria-hidden="true"><defs><clipPath id="pd7c"><path id="pd7live" d="' + (r.live || r.path) + '"/></clipPath></defs>';
+    h += '<path d="' + r.path + '" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.2" stroke-dasharray="3 3"/>';
     h += '<g class="wh">' + r.wh.map(function(w, i){ return '<rect data-i="' + i + '" x="' + (w.x - w.r).toFixed(1) + '" y="' + (w.y - w.w / 2).toFixed(1) + '" width="' + (2 * w.r).toFixed(1) + '" height="' + w.w.toFixed(1) + '" rx="3"/>'; }).join('') + '</g>';
-    h += '<path d="' + r.path + '" fill="rgba(14,16,20,.85)"/><g clip-path="url(#pd7c)">';
+    h += '<path id="pd7fill" d="' + (r.live || r.path) + '" fill="rgba(14,16,20,.85)"/><g clip-path="url(#pd7c)">';
     for (var k = 0; k < r.nz * r.nx; k++) { var zi = (k / r.nx) | 0, xi = k % r.nx; h += '<rect class="c" x="' + (zi * cw).toFixed(2) + '" y="' + (xi * ch).toFixed(2) + '" width="' + (cw + .4).toFixed(2) + '" height="' + (ch + .4).toFixed(2) + '"/>'; }
     for (var z = 1; z < r.nz; z++) h += '<path d="M' + (z * cw).toFixed(1) + ' 0V100" stroke="rgba(10,12,15,.28)" stroke-width=".7"/>';
     for (var x = 1; x < r.nx; x++) h += '<path d="M0 ' + (x * ch).toFixed(1) + 'H180" stroke="rgba(10,12,15,' + (x === r.nx / 2 ? '.45' : '.25') + ')" stroke-width="' + (x === r.nx / 2 ? 1 : .7) + '"/>';
-    if (r.glass) h += '<rect x="' + r.glass[0].toFixed(1) + '" y="24" width="' + (r.glass[1] - r.glass[0]).toFixed(1) + '" height="52" rx="8" fill="rgba(12,16,22,.28)" stroke="rgba(255,255,255,.4)" stroke-width="1"/>';
-    h += '</g><path d="' + r.path + '" fill="none" stroke="rgba(255,255,255,.88)" stroke-width="2.2" stroke-linejoin="round"/>';
+    r.seams.forEach(function(sm){ var x = sm[0].toFixed(1); h += sm[1] === 0 ? '<path d="M' + x + ' 6V94" stroke="rgba(10,12,15,.55)" stroke-width="1.1"/>' : '<path d="M' + x + ' ' + (sm[1] > 0 ? '0V22' : '78V100') + '" stroke="rgba(10,12,15,.6)" stroke-width="1.2"/>'; });
+    if (r.glass) { var g0 = r.glass[0], g1 = r.glass[1], gw = g1 - g0;
+      h += '<path d="M' + (g1 + gw * .28).toFixed(1) + ' 20 L' + (g1 + gw * .02).toFixed(1) + ' 26 L' + (g1 + gw * .02).toFixed(1) + ' 74 L' + (g1 + gw * .28).toFixed(1) + ' 80Z" fill="rgba(150,190,220,.35)" stroke="rgba(255,255,255,.55)" stroke-width="1"/>';
+      h += '<path d="M' + (g0 - gw * .2).toFixed(1) + ' 22 L' + (g0 - gw * .02).toFixed(1) + ' 27 L' + (g0 - gw * .02).toFixed(1) + ' 73 L' + (g0 - gw * .2).toFixed(1) + ' 78Z" fill="rgba(150,190,220,.3)" stroke="rgba(255,255,255,.5)" stroke-width="1"/>';
+      h += '<rect x="' + g0.toFixed(1) + '" y="27" width="' + gw.toFixed(1) + '" height="46" rx="6" fill="rgba(12,16,22,.18)" stroke="rgba(255,255,255,.4)" stroke-width="1"/>';
+      h += '<path d="M' + (g0 + 2).toFixed(1) + ' 15 H' + (g1 + gw * .1).toFixed(1) + ' M' + (g0 + 2).toFixed(1) + ' 85 H' + (g1 + gw * .1).toFixed(1) + '" stroke="rgba(150,190,220,.55)" stroke-width="3" stroke-linecap="round"/>';
+      h += '<path d="M' + (g1 + gw * .22).toFixed(1) + ' 7 l-5 -5 M' + (g1 + gw * .22).toFixed(1) + ' 93 l-5 5" stroke="rgba(255,255,255,.8)" stroke-width="3" stroke-linecap="round"/>'; }
+    h += '</g><path id="pd7edge" d="' + (r.live || r.path) + '" fill="none" stroke="rgba(255,255,255,.88)" stroke-width="2.2" stroke-linejoin="round"/>';
     h += '<path d="M176 20 l3 6 M176 80 l3 -6" stroke="#ffe9a8" stroke-width="3.2" stroke-linecap="round"/><path d="M3 22 l-2 6 M3 78 l-2 -6" stroke="#ff5a48" stroke-width="3" stroke-linecap="round"/></svg>';
     el.innerHTML = h; cells = el.querySelectorAll('.c'); whs = el.querySelectorAll('.wh rect'); last = [];
   }
@@ -23638,6 +23671,7 @@ roughnessFactor = clamp(roughnessFactor + (gwN(vGW.xz * 0.11 + 7.0) - 0.5) * 0.1
       el = el || document.getElementById('pdz6'); if (!el || !window.__pdzDiag) return;
       var r = window.__pdzDiag(); if (!r) return;
       if (r.sig !== sig) { sig = r.sig; draw(r); }
+      if (r.live) { var lp = el.querySelector('#pd7live'), le = el.querySelector('#pd7edge'); lp && lp.setAttribute('d', r.live); le && le.setAttribute('d', r.live); var lf = el.querySelector('#pd7fill'); lf && lf.setAttribute('d', r.live); }
       for (var k = 0; k < r.z.length; k++) { var q = Math.round(r.z[k] * 40); if (q !== last[k]) { cells[k].setAttribute('fill', col(r.z[k])); if (last[k] !== undefined && q > last[k] + 4) { cells[k].classList.remove('hit'); void cells[k].getBBox(); cells[k].classList.add('hit'); } last[k] = q; } }
       for (var i = 0; i < whs.length; i++) { var d = r.det[i]; whs[i].setAttribute('fill', d ? 'rgba(255,64,48,.3)' : 'rgba(10,12,15,.92)'); whs[i].setAttribute('stroke', d ? 'rgba(255,64,48,.95)' : 'rgba(255,255,255,.45)'); whs[i].setAttribute('stroke-dasharray', d ? '3 2' : ''); }
     } catch (e) {}
